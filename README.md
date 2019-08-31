@@ -12,7 +12,8 @@ Coming from a background of game development, there's plenty of options for stor
 
 ### Example Datatag (.dt) file
 
-```; This is a comment
+```
+; This is a comment
 a_bool: true ; This is also a comment
 a_byte: 0x01
 a_int: 2
@@ -30,7 +31,8 @@ a_object:
 	d: 0
 	e: [1 2 3 4] ; you can nest arrays in objects
 	f: [ {a: 0} {a: 1} {a: 2} {a: 3} ] ; you can nest objects in arrays
-}```
+}
+```
 
 ### Types
 
