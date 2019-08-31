@@ -3,21 +3,18 @@ import re
 class SyntaxError(Exception): pass
 
 _rx_tokenize = r";.*$|\"(?:[^\"\\]|\\.)*\"|\'\\?.\'|[\[\]{}:;]|[^\s\[\]{}:;]+"
-
 _rx_key = re.compile(r"^(?!true|false)(?:[_a-zA-Z][_a-zA-Z0-9]*)$")
-
 _val = {
-        "bool":     r"(true|false)",
-        "byte":     r"0[xX]([0-9a-fA-F])+",
-        "int":      r"([0-9]+)",
-        "short":    r"([0-9]+)[sS]",
-        "long":     r"([0-9]+)[lL]",
-        "float":    r"([0-9]*\.[0-9]*)[fF]",
-        "double":   r"([0-9]*\.[0-9]*)",
-        "char":     r"'(\\?.)'",
-        "string":   r"\"((?:[^\"\\]|\\.)*)\"",
+        "bool":     r"^(true|false)$",
+        "byte":     r"^0[xX]([0-9a-fA-F])+$",
+        "int":      r"^([0-9]+)$",
+        "short":    r"^([0-9]+)[sS]$",
+        "long":     r"^([0-9]+)[lL]$",
+        "float":    r"^([0-9]*\.[0-9]*)[fF]$",
+        "double":   r"^([0-9]*\.[0-9]*)$",
+        "char":     r"^'(\\?.)'$",
+        "string":   r"^\"((?:[^\"\\]|\\.)*)\"$",
     }
-for k,v in _val.items(): _val[k] = re.compile('^' + v + '$')
 
 def _tokenize(file):
     tokens = list()
