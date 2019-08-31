@@ -4,7 +4,7 @@
 ### What is Datatag?
 
 Datatag is yet-another file format. The goal of which is:
-1. To be simple to write.
+1. To be quick to write.
 2. To be quick to parse.
 3. To be accessible to both programmers and non-programmers.
 
