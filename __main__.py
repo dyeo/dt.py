@@ -141,6 +141,3 @@ def load(fp):
 
 def loads(s):
     return _parse(_tokenize(s))
-
-for k,v in loads("_: [ { a: {b: {c: [\"d\" [ 0 [ 0 1 2 ] 2 ] 1 2] } } } 0 1 2] __: 1").items():
-    print(f"{k}: {v}")
