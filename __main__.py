@@ -1,9 +1,7 @@
 import re
 
-#
 # The internal state of the parser.
-#
-class __state__(object):
+class __State(object):
     def __init__(self, tokens: list):
         self.tokens = tokens
         self.iter = 0
@@ -14,9 +12,7 @@ class __state__(object):
 
 class SyntaxError(Exception): pass
 
-#
 # Type aliases
-#
 _BOOL = 0
 _BYTE = 1
 _INT = 2
@@ -27,9 +23,7 @@ _DOUBLE = 6
 _CHAR = 7
 _STRING = 8
 
-#
 # Regular expressions
-#
 _rx_tokenize = r";.*$|\"(?:[^\"\\]|\\.)*\"|\'\\?.\'|[\[\]{}:;]|[^\s\[\]{}:;]+"
 _rx_key = re.compile(r"^(?!true|false)(?:[_a-zA-Z][_a-zA-Z0-9]*)$")
 _rx_val = {
@@ -44,9 +38,7 @@ _rx_val = {
         _STRING:   re.compile(r"^\"((?:[^\"\\]|\\.)*)\"$"),
     }
 
-#
 # Converts a datatag string into a list of acceptable tokens.
-#
 def _tokenize(s):
     tokens = list()
     matches = re.finditer(_rx_tokenize, s, re.MULTILINE)
@@ -56,18 +48,14 @@ def _tokenize(s):
             tokens.append(token)
     return tokens
 
-#
 # Parses a token list into an acceptable dict containing datatag values.
-#
 def _parse(tokens):
-    state = __state__(tokens)
+    state = __State(tokens)
     while state.iter < len(state.tokens):
         state = __parseNext(state)
     return state.objects[0]
 
-#
 # Returns a python-acceptable value from a given token string.
-#
 def __get_value(token):
     for k,v in _rx_val.items():
         match = re.match(v, token)
@@ -85,10 +73,8 @@ def __get_value(token):
                 val = str(val.encode("utf-8").decode("unicode_escape"))
             return val
 
-#
 # Exits the current parser scope, whether it's an array or object.
-#
-def __exit_scope(state: __state__):
+def __exit_scope(state: __State):
     if isinstance(state.objects[-1], dict): state.keys.pop()
     popped = state.objects.pop()
     if isinstance(state.objects[-1], dict):
@@ -99,10 +85,8 @@ def __exit_scope(state: __state__):
             state.mode = 'a'
     return state
 
-#
 # Parses the next token in order to construct the data set.
-# 
-def __parseNext(state: __state__):
+def __parseNext(state: __State):
     token = state.tokens[state.iter]
     key = re.match(_rx_key, token)
     if state.mode == '' and key:
