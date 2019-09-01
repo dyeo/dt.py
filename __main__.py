@@ -73,6 +73,16 @@ def __get_value(token):
                 val = str(val.encode("utf-8").decode("unicode_escape"))
             return val
 
+# Enters the current parser scope, whether it's an array or object.
+def __enter_scope(state: __State, type):
+    state.objects.append(type())
+    if type == list:        
+        state.mode = 'a' # awaiting array values
+    elif type == dict:
+        state.keys.append("")
+        state.mode = ''
+    return state
+
 # Exits the current parser scope, whether it's an array or object.
 def __exit_scope(state: __State):
     if isinstance(state.objects[-1], dict): state.keys.pop()
@@ -90,22 +100,19 @@ def __parseNext(state: __State):
     token = state.tokens[state.iter]
     key = re.match(_rx_key, token)
     if state.mode == '' and key:
-            if state.tokens[state.iter+1] == ':':
-                state.mode = 'v' # awaiting a value
-                state.keys[-1] = token
-                state.iter += 2
-                return state
-            else:
-                raise SyntaxError(f"Key {token} not proceeded by an assignment")
+        if state.tokens[state.iter+1] == ':':
+            state.mode = 'v' # awaiting a value
+            state.keys[-1] = token
+            state.iter += 2
+            return state
+        else:
+            raise SyntaxError(f"Key {token} not proceeded by an assignment")
     if token == '[':
-        state.objects.append(list())
-        state.mode = 'a' # awaiting array values
+        state = __enter_scope(state, list)
         state.iter += 1
         return state
     if token == '{':
-        state.keys.append("")
-        state.objects.append(dict())
-        state.mode = ''
+        state = __enter_scope(state, dict)
         state.iter += 1
         return state
     if token in {']', '}'}:
@@ -132,3 +139,6 @@ def loads(s):
     """Loads a string containing a datatag file into python objects representing the dataset.
     Returns a dict containing the dataset, as key value pairs corresponding to their representation in the datatag file."""
     return _parse(_tokenize(s))
+
+#for k,v in loads("a: [ 1 2 3 ]").items():
+#    print(f"{k}: {v}")
