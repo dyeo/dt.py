@@ -112,5 +112,9 @@ def _parseNext(s: _pstate):
         return s
     raise SyntaxError(f"Invalid token {s.tokens[s.iter]}")
 
-def load(file):
-    return _parse(_tokenize(file))
+def load(fp):
+    return _parse(_tokenize(fp.dump()))
+
+def loads(s):
+    return _parse(_tokenize(s))
+
