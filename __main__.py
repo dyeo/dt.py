@@ -1,6 +1,8 @@
 import re
 
+#
 # The internal state of the parser.
+#
 class __state__(object):
     def __init__(self, tokens: list):
         self.tokens = tokens
@@ -27,6 +29,7 @@ _STRING = 8
 
 #
 # Regular expressions
+#
 _rx_tokenize = r";.*$|\"(?:[^\"\\]|\\.)*\"|\'\\?.\'|[\[\]{}:;]|[^\s\[\]{}:;]+"
 _rx_key = re.compile(r"^(?!true|false)(?:[_a-zA-Z][_a-zA-Z0-9]*)$")
 _rx_val = {
@@ -137,7 +140,11 @@ def __parseNext(state: __state__):
     raise SyntaxError(f"Invalid token {token}")
 
 def load(fp):
+    """Loads a python filestream containing a datatag file into python objects representing the dataset.
+    Returns a dict containing the dataset, as key value pairs corresponding to their representation in the datatag file."""
     return _parse(_tokenize(fp.dump()))
 
 def loads(s):
+    """Loads a string containing a datatag file into python objects representing the dataset.
+    Returns a dict containing the dataset, as key value pairs corresponding to their representation in the datatag file."""
     return _parse(_tokenize(s))
