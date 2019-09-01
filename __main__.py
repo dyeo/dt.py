@@ -88,11 +88,11 @@ def __exit_scope(state: __State):
     if isinstance(state.objects[-1], dict): state.keys.pop()
     popped = state.objects.pop()
     if isinstance(state.objects[-1], dict):
-            state.objects[-1][state.keys[-1]] = popped
-            state.mode = ''
+        state.objects[-1][state.keys[-1]] = popped
+        state.mode = ''
     else:#isinstance(s.objects[-1], list):
-            state.objects[-1].append(popped)
-            state.mode = 'a'
+        state.objects[-1].append(popped)
+        state.mode = 'a'
     return state
 
 # Parses the next token in order to construct the data set.
