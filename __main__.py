@@ -73,10 +73,15 @@ def __get_value(token):
                 val = str(val.encode("utf-8").decode("unicode_escape"))
             return val
 
+# Advances the parser state.
+def __continue(state: __State, steps):
+    state.iter += steps;
+    return state;
+
 # Enters the current parser scope, whether it's an array or object.
 def __enter_scope(state: __State, type):
     state.objects.append(type())
-    if type == list:        
+    if type == list:
         state.mode = 'a' # awaiting array values
     elif type == dict:
         state.keys.append("")
@@ -85,10 +90,13 @@ def __enter_scope(state: __State, type):
 
 # Exits the current parser scope, whether it's an array or object.
 def __exit_scope(state: __State):
-    if isinstance(state.objects[-1], dict): state.keys.pop()
+    if isinstance(state.objects[-1], dict):
+        state.keys.pop()
     popped = state.objects.pop()
     if isinstance(state.objects[-1], dict):
+        if not state.keys[-1]: raise SyntaxError(f"Value {popped} is preceeded by an empty or invalid key")
         state.objects[-1][state.keys[-1]] = popped
+        state.keys[-1] = ""
         state.mode = ''
     else:#isinstance(s.objects[-1], list):
         state.objects[-1].append(popped)
@@ -103,31 +111,25 @@ def __parseNext(state: __State):
         if state.tokens[state.iter+1] == ':':
             state.mode = 'v' # awaiting a value
             state.keys[-1] = token
-            state.iter += 2
-            return state
+            return __continue(state, 2)
         else:
             raise SyntaxError(f"Key {token} not proceeded by an assignment")
     if token == '[':
         state = __enter_scope(state, list)
-        state.iter += 1
-        return state
+        return __continue(state, 1)
     if token == '{':
         state = __enter_scope(state, dict)
-        state.iter += 1
-        return state
+        return __continue(state, 1)
     if token in {']', '}'}:
         state = __exit_scope(state)
-        state.iter += 1
-        return state
+        return __continue(state, 1)
     if state.mode == 'v' and not key:
         state.objects[-1][state.keys[-1]] = __get_value(token)
         state.mode = ''
-        state.iter += 1
-        return state
+        return __continue(state, 1)
     if state.mode == 'a' and not key:
         state.objects[-1].append(__get_value(token))
-        state.iter += 1
-        return state
+        return __continue(state, 1)
     raise SyntaxError(f"Invalid token {token}")
 
 def load(fp):
