@@ -53,16 +53,21 @@ def _tokenize(s):
             tokens.append(token)
     return tokens
 
-# Parses 
+#
+# Parses a token list into an acceptable dict containing datatag values.
+#
 def _parse(tokens):
     state = __state__(tokens)
     while state.iter < len(state.tokens):
         state = __parseNext(state)
     return state.objects[0]
 
-def __get_value(state: __state__):
+#
+# Returns a python-acceptable value from a given token string.
+#
+def __get_value(token):
     for k,v in _rx_val.items():
-        match = re.match(v, state.tokens[state.iter])
+        match = re.match(v, token)
         if match:
             val = match.group(1)
             if not val:
@@ -77,59 +82,59 @@ def __get_value(state: __state__):
                 val = str(val.encode("utf-8").decode("unicode_escape"))
             return val
 
+#
+# Exits the current parser scope, whether it's an array or object.
+#
+def __exit_scope(state: __state__):
+    if isinstance(state.objects[-1], dict): state.keys.pop()
+    popped = state.objects.pop()
+    if isinstance(state.objects[-1], dict):
+            state.objects[-1][state.keys[-1]] = popped
+            state.mode = ''
+    else:#isinstance(s.objects[-1], list):
+            state.objects[-1].append(popped)
+            state.mode = 'a'
+    return state
+
+#
+# Parses the next token in order to construct the data set.
+# 
 def __parseNext(state: __state__):
-    key = re.match(_rx_key, state.tokens[state.iter])
+    token = state.tokens[state.iter]
+    key = re.match(_rx_key, token)
     if state.mode == '' and key:
             if state.tokens[state.iter+1] == ':':
                 state.mode = 'v' # awaiting a value
-                state.keys[-1] = state.tokens[state.iter]
+                state.keys[-1] = token
                 state.iter += 2
                 return state
             else:
-                raise SyntaxError(f"Key {state.tokens[state.iter]} not proceeded by an assignment")
-    if state.tokens[state.iter] == '[':
+                raise SyntaxError(f"Key {token} not proceeded by an assignment")
+    if token == '[':
         state.objects.append(list())
-        state.mode = 'a'
+        state.mode = 'a' # awaiting array values
         state.iter += 1
         return state
-    if state.tokens[state.iter] == ']':
-        popped = state.objects.pop()
-        if isinstance(state.objects[-1], dict):
-            state.objects[-1][state.keys[-1]] = popped
-            state.mode = ''
-        else:#isinstance(s.objects[-1], list):
-            state.objects[-1].append(popped)
-            state.mode = 'a'
-        state.mode = ''
-        state.iter += 1
-        return state
-    if state.tokens[state.iter] == '{':
+    if token == '{':
         state.keys.append("")
         state.objects.append(dict())
         state.mode = ''
         state.iter += 1
         return state
-    if state.tokens[state.iter] == '}':
-        popped = state.objects.pop()
-        state.keys.pop()
-        if isinstance(state.objects[-1], dict):
-            state.objects[-1][state.keys[-1]] = popped
-            state.mode = ''
-        else:#isinstance(s.objects[-1], list):
-            state.objects[-1].append(popped)
-            state.mode = 'a'
+    if token in {']', '}'}:
+        state = __exit_scope(state)
         state.iter += 1
         return state
     if state.mode == 'v' and not key:
-        state.objects[-1][state.keys[-1]] = __get_value(state)
+        state.objects[-1][state.keys[-1]] = __get_value(token)
         state.mode = ''
         state.iter += 1
         return state
     if state.mode == 'a' and not key:
-        state.objects[-1].append(__get_value(state))
+        state.objects[-1].append(__get_value(token))
         state.iter += 1
         return state
-    raise SyntaxError(f"Invalid token {state.tokens[state.iter]}")
+    raise SyntaxError(f"Invalid token {token}")
 
 def load(fp):
     return _parse(_tokenize(fp.dump()))
@@ -137,5 +142,5 @@ def load(fp):
 def loads(s):
     return _parse(_tokenize(s))
 
-for k,v in loads("a: {b: {c: [\"d\" 0 1 2] } }").items():
+for k,v in loads("_: [ { a: {b: {c: [\"d\" [ 0 [ 0 1 2 ] 2 ] 1 2] } } } 0 1 2] __: 1").items():
     print(f"{k}: {v}")
