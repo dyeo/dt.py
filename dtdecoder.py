@@ -40,11 +40,11 @@ class DTDecoder(object):
         }
     
     def decode(self, s):
-        self.tokenize(s)
-        return self.parse()
+        self._tokenize(s)
+        return self._parse()
 
     # Converts a datatag string into a list of acceptable tokens.
-    def tokenize(self, s):
+    def _tokenize(self, s):
         self.tokens = list()
         matches = re.finditer(self._rx_tok, s, re.MULTILINE)
         for _, match in enumerate(matches, start=1):
@@ -53,7 +53,7 @@ class DTDecoder(object):
                 self.tokens.append(token)
     
     # Parses a token list into an acceptable dict containing datatag values.
-    def parse(self):
+    def _parse(self):
         while self.iter < len(self.tokens):
             self._parse_next()
         return self.objects[0]
