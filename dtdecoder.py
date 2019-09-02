@@ -15,15 +15,7 @@ _CHAR = 7
 _STRING = 8
 
 # The internal state of the parser.
-class DTDecoder(object):
-    # DTParser constructor.
-    def __init__(self):
-        self.iter = 0
-        self.objects = list()
-        self.objects.append(dict())
-        self.mode = ""
-        self.keys = list([""])
-    
+class DTDecoder(object):    
     # Regular expressions
     _rx_tok = r";.*$|\"(?:[^\"\\]|\\.)*\"|\'\\?.\'|[\[\]{}:;]|[^\s\[\]{}:;]+"
     _rx_key = re.compile(r"^(?!true|false)(?:[_a-zA-Z][_a-zA-Z0-9]*)$")
@@ -38,8 +30,20 @@ class DTDecoder(object):
             _CHAR:     re.compile(r"^'(\\?.)'$"),
             _STRING:   re.compile(r"^\"((?:[^\"\\]|\\.)*)\"$"),
         }
-    
+
+    # DTParser constructor.
+    def __init__(self):
+        self.iter = 0
+        self.objects = list()
+        self.objects.append(dict())
+        self.mode = ""
+        self.keys = list([""])
+
     def decode(self, s):
+        """
+        Return the Python representation of s (a str instance containing a Datatag document).
+        DTDecodeError will be raised if the given Datatag document is not valid.
+        """
         self._tokenize(s)
         return self._parse()
 
