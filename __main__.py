@@ -13,10 +13,3 @@ def load(fp, cls=None):
     cls = DTDecoder if not cls else cls
     prs = cls()
     return prs.decode(fp.dump())
-
-for k,v in loads("a: [ 1 2 { a: [ 1 2 3 ] b: [ 4 5 6 ] } ]").items():
-   print(f"{k}: {v}")
-
-#o = {'a':'1', 'b':[2,3,4]}
-#ss = str(o)
-#print(ss)
