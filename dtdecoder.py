@@ -105,7 +105,7 @@ class DTDecoder(object):
         elif self.mode == 'v' and not key:
             self.objects[-1][self.keys[-1]] = self._get_value(token)
             self.mode = ''
-            _continue(1)
+            self._continue(1)
         elif self.mode == 'a' and not key:
             self.objects[-1].append(self._get_value(token))
             self._continue(1)
