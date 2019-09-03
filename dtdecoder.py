@@ -7,11 +7,12 @@ from dtdecoderutils import _rx_tok, _rx_key, _rx_val
 class DTDecoder(object):
 
     # DTParser constructor.
-    def __init__(self):
+    def __init__(self, objo):
+        self.decode_to_class = objo
         self.iter = 0
         self.objects = list()
         self.objects.append(dict())
-        self.mode = ""
+        self.mode = ''
         self.keys = list([""])
 
     def decode(self, s):
