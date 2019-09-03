@@ -1,35 +1,10 @@
 import re
-
-# The error raised when the dt file is invalid.
-class DTDecodeError(Exception): pass
-
-# Type aliases
-_BOOL = 0
-_BYTE = 1
-_INT = 2
-_SHORT = 3
-_LONG = 4
-_FLOAT = 5
-_DOUBLE = 6
-_CHAR = 7
-_STRING = 8
+from dtdecoderutils import DTDecodeError
+from dtdecoderutils import _BOOL, _BYTE, _INT, _SHORT, _LONG, _FLOAT, _DOUBLE, _CHAR, _STRING
+from dtdecoderutils import _rx_tok, _rx_key, _rx_val
 
 # The internal state of the parser.
-class DTDecoder(object):    
-    # Regular expressions
-    _rx_tok = r";.*$|\"(?:[^\"\\]|\\.)*\"|\'\\?.\'|[\[\]{}:;]|[^\s\[\]{}:;]+"
-    _rx_key = re.compile(r"^(?!true|false)(?:[_a-zA-Z][_a-zA-Z0-9]*)$")
-    _rx_val = {
-            _BOOL:     re.compile(r"^(true|false)$"),
-            _BYTE:     re.compile(r"^0[xX]([0-9a-fA-F])+$"),
-            _INT:      re.compile(r"^([0-9]+)$"),
-            _SHORT:    re.compile(r"^([0-9]+)[sS]$"),
-            _LONG:     re.compile(r"^([0-9]+)[lL]$"),
-            _FLOAT:    re.compile(r"^([0-9]*\.[0-9]*)[fF]$"),
-            _DOUBLE:   re.compile(r"^([0-9]*\.[0-9]*)$"),
-            _CHAR:     re.compile(r"^'(\\?.)'$"),
-            _STRING:   re.compile(r"^\"((?:[^\"\\]|\\.)*)\"$"),
-        }
+class DTDecoder(object):
 
     # DTParser constructor.
     def __init__(self):
@@ -50,7 +25,7 @@ class DTDecoder(object):
     # Converts a datatag string into a list of acceptable tokens.
     def _tokenize(self, s):
         self.tokens = list()
-        matches = re.finditer(self._rx_tok, s, re.MULTILINE)
+        matches = re.finditer(_rx_tok, s, re.MULTILINE)
         for _, match in enumerate(matches, start=1):
             token = match.group()
             if token and (not token[0] == ';'):
@@ -64,7 +39,7 @@ class DTDecoder(object):
     
     # Returns a python-acceptable value from a given token string.
     def _get_value(self, token):
-        for k,v in self._rx_val.items():
+        for k,v in _rx_val.items():
             match = re.match(v, token)
             if match:
                 val = match.group(1)
@@ -110,7 +85,7 @@ class DTDecoder(object):
     # Parses the next token in order to construct the data set.
     def _parse_next(self):
         token = self.tokens[self.iter]
-        key = re.match(self._rx_key, token)
+        key = re.match(_rx_key, token)
         if self.mode == '' and key:
             if self.tokens[self.iter+1] == ':':
                 self.mode = 'v' # awaiting a value
