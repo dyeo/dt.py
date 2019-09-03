@@ -1,10 +1,14 @@
 import re
 from dtdecoderutils import DTDecodeError
 from dtdecoderutils import _BOOL, _BYTE, _INT, _SHORT, _LONG, _FLOAT, _DOUBLE, _CHAR, _STRING
-from dtdecoderutils import _rx_tok, _rx_key, _rx_val
+from dtdecoderutils import _rx_tok, _rx_key, _rx_val, _get_value
 
-# The internal state of the parser.
 class DTDecoder(object):
+    """
+    The object responsible for decoding datatag files into an acceptable python representation of their data.
+    """
+
+
 
     # DTParser constructor.
     def __init__(self, objo):
@@ -37,24 +41,6 @@ class DTDecoder(object):
         while self.iter < len(self.tokens):
             self._parse_next()
         return self.objects[0]
-    
-    # Returns a python-acceptable value from a given token string.
-    def _get_value(self, token):
-        for k,v in _rx_val.items():
-            match = re.match(v, token)
-            if match:
-                val = match.group(1)
-                if not val:
-                    raise DTDecodeError(f"Unkown value type for value {state.tokens[state.iter]}")
-                if k == _BOOL:
-                    val = val == "true"
-                elif k in {_BYTE,_INT,_SHORT,_LONG}:
-                    val = int(val, 16 if k == "byte" else 10)
-                elif k in {_FLOAT, _DOUBLE}:
-                    val = float(val)       
-                else:
-                    val = str(val.encode("utf-8").decode("unicode_escape"))
-                return val
     
     # Advances the parser state.
     def _continue(self, steps):
@@ -97,13 +83,15 @@ class DTDecoder(object):
     
     # Assigns a primitive to a key.
     def _assign_primitive(self, token):
-        self.objects[-1][self.keys[-1]] = self._get_value(token)
+        val =  _get_value(token)
+        self.objects[-1][self.keys[-1]] = val
         self.mode = ''
         self._continue(1)
 
     # Appends a primitive to an array.
     def _append_primitive(self, token):
-        self.objects[-1].append(self._get_value(token))
+        val = _get_value(token)
+        self.objects[-1].append()
         self._continue(1)
         
     # Parses the next token in order to construct the data set.

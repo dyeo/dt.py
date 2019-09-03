@@ -32,3 +32,21 @@ _rx_val = {
         _CHAR:     re.compile(r"^'(\\?.)'$"),
         _STRING:   re.compile(r"^\"((?:[^\"\\]|\\.)*)\"$"),
     }
+
+# Returns a python-acceptable primitive from a datatag token
+def _get_value(token):
+    for k,v in _rx_val.items():
+        match = re.match(v, token)
+        if match:
+            val = match.group(1)
+            if not val:
+                raise DTDecodeError(f"Unkown value type for value {state.tokens[state.iter]}")
+            if k == _BOOL:
+                val = val == "true"
+            elif k in {_BYTE,_INT,_SHORT,_LONG}:
+                val = int(val, 16 if k == "byte" else 10)
+            elif k in {_FLOAT, _DOUBLE}:
+                val = float(val)       
+            else:
+                val = str(val.encode("utf-8").decode("unicode_escape"))
+            return val
