@@ -8,8 +8,6 @@ class DTDecoder(object):
     The object responsible for decoding datatag files into an acceptable python representation of their data.
     """
 
-
-
     # DTParser constructor.
     def __init__(self, objo):
         self.decode_to_class = objo
@@ -73,25 +71,23 @@ class DTDecoder(object):
         popped = self.objects.pop()
         if isinstance(self.objects[-1], dict):
             if not self.keys[-1]: raise DTDecodeError(f"Value {popped} is preceeded by an empty or invalid key")
-            self.objects[-1][self.keys[-1]] = popped
-            self.keys[-1] = ""
+            self._assign_primitive(popped)
             self.mode = ''
         else:#isinstance(s.objects[-1], list):
-            self.objects[-1].append(popped)
+            self._append_primitive(popped)
             self.mode = 'a'
-        self._continue(1)
     
     # Assigns a primitive to a key.
-    def _assign_primitive(self, token):
-        val =  _get_value(token)
-        self.objects[-1][self.keys[-1]] = val
+    def _assign_primitive(self, value):
+        self.objects[-1][self.keys[-1]] = value
+        self.keys[-1] = ""
         self.mode = ''
         self._continue(1)
 
     # Appends a primitive to an array.
-    def _append_primitive(self, token):
-        val = _get_value(token)
-        self.objects[-1].append()
+    def _append_primitive(self, value):
+        self.objects[-1].append(value)
+        self.mode = 'a'
         self._continue(1)
         
     # Parses the next token in order to construct the data set.
@@ -105,8 +101,8 @@ class DTDecoder(object):
         elif token in {']', '}'}:
             self._exit_scope()
         elif self.mode == 'v' and not key:
-            self._assign_primitive(token)
+            self._assign_primitive(_get_value(token))
         elif self.mode == 'a' and not key:
-            self._append_primitive(token)
+            self._append_primitive(_get_value(token))
         else:
             raise DTDecodeError(f"Invalid token {token}")
