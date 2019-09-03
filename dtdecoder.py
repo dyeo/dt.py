@@ -58,15 +58,26 @@ class DTDecoder(object):
     # Advances the parser state.
     def _continue(self, steps):
         self.iter += steps;
+
+    # Defines a key to be assigned to.
+    def _define_key(self, token):
+        if self.tokens[self.iter+1] == ':':
+            self.mode = 'v' # awaiting a value
+            self.keys[-1] = token
+            self._continue(2)
+        else:
+            raise DTDecodeError(f"Key {token} not proceeded by an assignment")
     
     # Enters the current parser scope, whether it's an array or object.
-    def _enter_scope(self, type):
-        self.objects.append(type())
-        if type == list:
+    def _enter_scope(self, token):
+        if token == '[':
+            self.objects.append(list())
             self.mode = 'a' # awaiting array values
-        elif type == dict:
+        elif token == '{':
+            self.objects.append(dict())
             self.keys.append("")
             self.mode = ''
+        self._continue(1)
     
     # Exits the current parser scope, whether it's an array or object.
     def _exit_scope(self):
@@ -81,33 +92,32 @@ class DTDecoder(object):
         else:#isinstance(s.objects[-1], list):
             self.objects[-1].append(popped)
             self.mode = 'a'
+        self._continue(1)
     
+    # Assigns a primitive to a key.
+    def _assign_primitive(self, token):
+        self.objects[-1][self.keys[-1]] = self._get_value(token)
+        self.mode = ''
+        self._continue(1)
+
+    # Appends a primitive to an array.
+    def _append_primitive(self, token):
+        self.objects[-1].append(self._get_value(token))
+        self._continue(1)
+        
     # Parses the next token in order to construct the data set.
     def _parse_next(self):
         token = self.tokens[self.iter]
         key = re.match(_rx_key, token)
         if self.mode == '' and key:
-            if self.tokens[self.iter+1] == ':':
-                self.mode = 'v' # awaiting a value
-                self.keys[-1] = token
-                self._continue(2)
-            else:
-                raise DTDecodeError(f"Key {token} not proceeded by an assignment")
-        elif token == '[':
-            self._enter_scope(list)
-            self._continue(1)
-        elif token == '{':
-            self._enter_scope(dict)
-            self._continue(1)
+            self._define_key(token)
+        elif token in {'[', '{'}:
+            self._enter_scope(token)
         elif token in {']', '}'}:
             self._exit_scope()
-            self._continue(1)
         elif self.mode == 'v' and not key:
-            self.objects[-1][self.keys[-1]] = self._get_value(token)
-            self.mode = ''
-            self._continue(1)
+            self._assign_primitive(token)
         elif self.mode == 'a' and not key:
-            self.objects[-1].append(self._get_value(token))
-            self._continue(1)
+            self._append_primitive(token)
         else:
             raise DTDecodeError(f"Invalid token {token}")
