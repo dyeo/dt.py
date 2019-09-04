@@ -9,11 +9,17 @@ class DTDecoder(object):
     """
 
     # DTParser constructor.
-    def __init__(self, objo):
-        self.decode_to_class = objo
+    def __init__(self, decode_class, loose_arrays):
+        # Configuration settings
+        self.decode_class = decode_class
+        self.loose_arrays = loose_arrays
+        # State variables
         self.iter = 0
         self.objects = list()
-        self.objects.append(dict())
+        if decode_class:
+            self.objects.append(decode_class())
+        else:
+            self.objects.append(dict())
         self.mode = ''
         self.keys = list([""])
         self.types = list()
@@ -59,11 +65,15 @@ class DTDecoder(object):
     # Enters the current parser scope, whether it's an array or object.
     def _enter_scope(self, token):
         if token == '[':
-            self.types.append(None)
+            if not self.loose_arrays:
+                self.types.append(None)
             self.objects.append(list())
             self.mode = 'a' # awaiting array values
         elif token == '{':
-            self.objects.append(dict())
+            if not self.decode_class or isinstance(self.objects[-1], dict) or isinstance(self.objects[-1], list) or isinstance(getattr(self.objects[-1], self.keys[-1], None), dict):
+                self.objects.append(dict())
+            else:
+                self.objects.append(getattr(self.objects[-1], self.keys[-1]))
             self.keys.append("")
             self.mode = ''
         self._continue(1)
@@ -72,16 +82,17 @@ class DTDecoder(object):
     def _exit_scope(self, token):
         if len(self.objects) <= 1:
             raise DTDecodeError(f"Unexpected token {token}")
-        is_object = isinstance(self.objects[-1], dict)
+        is_object = not isinstance(self.objects[-1], list)
         if token == ']' and is_object or token == '}' and not is_object:
             raise DTDecodeError(f"Invalid termination of scope for object {self.objects[-1]}")
         elif is_object:
             self.keys.pop()
-        else:#if not is_object:
+        elif not self.loose_arrays:
             self.types.pop()
         popped = self.objects.pop()
-        if isinstance(self.objects[-1], dict):
-            if not self.keys[-1]: raise DTDecodeError(f"Value {popped} is preceeded by an empty or invalid key")
+        if not isinstance(self.objects[-1], list):
+            if not self.keys[-1]:
+                raise DTDecodeError(f"Value {popped} is preceeded by an empty or invalid key")
             self._assign_primitive(popped)
             self.mode = ''
         else:#isinstance(s.objects[-1], list):
@@ -90,17 +101,21 @@ class DTDecoder(object):
     
     # Assigns a primitive to a key.
     def _assign_primitive(self, value):
-        self.objects[-1][self.keys[-1]] = value
+        if self.decode_class and not isinstance(self.objects[-1], dict):
+            setattr(self.objects[-1], self.keys[-1], value)
+        else:
+            self.objects[-1][self.keys[-1]] = value
         self.keys[-1] = ""
         self.mode = ''
         self._continue(1)
 
     # Appends a primitive to an array.
     def _append_primitive(self, value):
-        if self.types[-1] is None:
-            self.types[-1] = type(value)
-        elif self.types[-1] is not type(value):
-            raise DTDecodeError(f"Array element {value} has mismatched type")
+        if not self.loose_arrays:
+            if self.types[-1] is None:
+                self.types[-1] = type(value)
+            elif self.types[-1] is not type(value):
+                raise DTDecodeError(f"Array element {value} has mismatched type")
         self.objects[-1].append(value)
         self.mode = 'a'
         self._continue(1)
