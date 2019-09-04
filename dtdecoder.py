@@ -16,6 +16,7 @@ class DTDecoder(object):
         self.objects.append(dict())
         self.mode = ''
         self.keys = list([""])
+        self.types = list()
 
     def decode(self, s):
         """
@@ -58,6 +59,7 @@ class DTDecoder(object):
     # Enters the current parser scope, whether it's an array or object.
     def _enter_scope(self, token):
         if token == '[':
+            self.types.append(None)
             self.objects.append(list())
             self.mode = 'a' # awaiting array values
         elif token == '{':
@@ -75,6 +77,8 @@ class DTDecoder(object):
             raise DTDecodeError(f"Invalid termination of scope for object {self.objects[-1]}")
         elif is_object:
             self.keys.pop()
+        else:#if not is_object:
+            self.types.pop()
         popped = self.objects.pop()
         if isinstance(self.objects[-1], dict):
             if not self.keys[-1]: raise DTDecodeError(f"Value {popped} is preceeded by an empty or invalid key")
@@ -93,6 +97,10 @@ class DTDecoder(object):
 
     # Appends a primitive to an array.
     def _append_primitive(self, value):
+        if self.types[-1] is None:
+            self.types[-1] = type(value)
+        elif self.types[-1] is not type(value):
+            raise DTDecodeError(f"Array element {value} has mismatched type")
         self.objects[-1].append(value)
         self.mode = 'a'
         self._continue(1)
