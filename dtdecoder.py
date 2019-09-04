@@ -38,6 +38,8 @@ class DTDecoder(object):
     def _parse(self):
         while self.iter < len(self.tokens):
             self._parse_next()
+        if len(self.objects) > 1:
+            raise DTDecodeError(f"Invalid termination of scope for object {self.objects[-1]}")
         return self.objects[0]
     
     # Advances the parser state.
@@ -65,8 +67,13 @@ class DTDecoder(object):
         self._continue(1)
     
     # Exits the current parser scope, whether it's an array or object.
-    def _exit_scope(self):
-        if isinstance(self.objects[-1], dict):
+    def _exit_scope(self, token):
+        if len(self.objects) <= 1:
+            raise DTDecodeError(f"Unexpected token {token}")
+        is_object = isinstance(self.objects[-1], dict)
+        if token == ']' and is_object or token == '}' and not is_object:
+            raise DTDecodeError(f"Invalid termination of scope for object {self.objects[-1]}")
+        elif is_object:
             self.keys.pop()
         popped = self.objects.pop()
         if isinstance(self.objects[-1], dict):
@@ -96,13 +103,13 @@ class DTDecoder(object):
         key = re.match(_rx_key, token)
         if self.mode == '' and key:
             self._define_key(token)
-        elif token in {'[', '{'}:
+        elif token in "[{":
             self._enter_scope(token)
-        elif token in {']', '}'}:
-            self._exit_scope()
+        elif token in "]}":
+            self._exit_scope(token)
         elif self.mode == 'v' and not key:
             self._assign_primitive(_get_value(token))
         elif self.mode == 'a' and not key:
             self._append_primitive(_get_value(token))
         else:
-            raise DTDecodeError(f"Invalid token {token}")
+            raise DTDecodeError(f"Unexpected token {token}")
